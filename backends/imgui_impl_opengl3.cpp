@@ -169,7 +169,7 @@ struct ImGui_ImplOpenGL3_Data
 {
     GLuint          GlVersion;               // Extracted at runtime using GL_MAJOR_VERSION, GL_MINOR_VERSION queries (e.g. 320 for GL 3.2)
     char            GlslVersionString[32];   // Specified by user or detected based on compile time GL settings.
-    GLuint          FontTexture;
+    GLuint          FontTextures[32] = { };
     GLuint          ShaderHandle;
     GLint           AttribLocationTex;       // Uniforms location
     GLint           AttribLocationProjMtx;
@@ -525,7 +525,7 @@ void    ImGui_ImplOpenGL3_RenderDrawData(ImDrawData* draw_data)
     (void)bd; // Not all compilation paths use this
 }
 
-bool ImGui_ImplOpenGL3_CreateFontsTexture()
+ImTextureID ImGui_ImplOpenGL3_CreateFontsTexture(ImFontAtlas* fonts)
 {
     ImGuiIO& io = ImGui::GetIO();
     ImGui_ImplOpenGL3_Data* bd = ImGui_ImplOpenGL3_GetBackendData();
@@ -533,13 +533,14 @@ bool ImGui_ImplOpenGL3_CreateFontsTexture()
     // Build texture atlas
     unsigned char* pixels;
     int width, height;
-    io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);   // Load as RGBA 32-bit (75% of the memory is wasted, but default font is so small) because it is more likely to be compatible with user's existing shaders. If your ImTextureId represent a higher-level concept than just a GL texture id, consider calling GetTexDataAsAlpha8() instead to save on GPU memory.
+    GLuint font_texture = 0;
+    fonts->GetTexDataAsRGBA32(&pixels, &width, &height);   // Load as RGBA 32-bit (75% of the memory is wasted, but default font is so small) because it is more likely to be compatible with user's existing shaders. If your ImTextureId represent a higher-level concept than just a GL texture id, consider calling GetTexDataAsAlpha8() instead to save on GPU memory.
 
     // Upload texture to graphics system
     GLint last_texture;
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
-    glGenTextures(1, &bd->FontTexture);
-    glBindTexture(GL_TEXTURE_2D, bd->FontTexture);
+    glGenTextures(1, &font_texture);
+    glBindTexture(GL_TEXTURE_2D, font_texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 #ifdef GL_UNPACK_ROW_LENGTH // Not on WebGL/ES
@@ -548,11 +549,34 @@ bool ImGui_ImplOpenGL3_CreateFontsTexture()
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
     // Store our identifier
-    io.Fonts->SetTexID((ImTextureID)(intptr_t)bd->FontTexture);
+    fonts->SetTexID((ImTextureID)(intptr_t)font_texture);
 
     // Restore state
     glBindTexture(GL_TEXTURE_2D, last_texture);
 
+    return fonts->TexID;
+}
+
+bool ImGui_ImplOpenGL3_CreateFontsTexture(ImGui_ImplOpenGL3_Data* bd)
+{
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.ConfigFlags & ImGuiConfigFlags_DpiEnableScaleFonts)
+    {
+        IM_ASSERT(!io.AllFonts.empty() && "All font atlases participating in DPI font scaling should be in io.AllFonts");
+        IM_ASSERT(io.AllFonts.Size < IM_ARRAYSIZE(bd->FontTextures));
+        for (int i = 0; i < io.AllFonts.Size; i++)
+        {
+            bd->FontTextures[i] = (GLuint)(intptr_t)ImGui_ImplOpenGL3_CreateFontsTexture(io.AllFonts[i]);
+            if (!bd->FontTextures[i])
+                return false;
+        }
+    }
+    else
+    {
+        bd->FontTextures[0] = (GLuint)(intptr_t)ImGui_ImplOpenGL3_CreateFontsTexture(io.Fonts);
+        if (!bd->FontTextures[0])
+            return false;
+    }
     return true;
 }
 
@@ -560,11 +584,14 @@ void ImGui_ImplOpenGL3_DestroyFontsTexture()
 {
     ImGuiIO& io = ImGui::GetIO();
     ImGui_ImplOpenGL3_Data* bd = ImGui_ImplOpenGL3_GetBackendData();
-    if (bd->FontTexture)
+    for (int i = 0; i < IM_ARRAYSIZE(bd->FontTextures); i++)
     {
-        glDeleteTextures(1, &bd->FontTexture);
-        io.Fonts->SetTexID(0);
-        bd->FontTexture = 0;
+        if (bd->FontTextures[i])
+        {
+            glDeleteTextures(1, &bd->FontTextures[i]);
+            io.Fonts->SetTexID(0);
+            bd->FontTextures[i] = 0;
+        }
     }
 }
 
@@ -782,7 +809,7 @@ bool    ImGui_ImplOpenGL3_CreateDeviceObjects()
     glGenBuffers(1, &bd->VboHandle);
     glGenBuffers(1, &bd->ElementsHandle);
 
-    ImGui_ImplOpenGL3_CreateFontsTexture();
+    ImGui_ImplOpenGL3_CreateFontsTexture(bd);
 
     // Restore modified GL state
     glBindTexture(GL_TEXTURE_2D, last_texture);
