@@ -263,7 +263,7 @@ static bool ImGui_ImplSDL2_Init(SDL_Window* window, void* sdl_gl_context)
     // Our mouse update function expect PlatformHandle to be filled for the main viewport
     ImGuiViewport* main_viewport = ImGui::GetMainViewport();
     main_viewport->PlatformHandle = (void*)window;
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(UWP)    // rbfx
     SDL_SysWMinfo info;
     SDL_VERSION(&info.version);
     if (SDL_GetWindowWMInfo(window, &info))
@@ -619,7 +619,7 @@ static void ImGui_ImplSDL2_CreateWindow(ImGuiViewport* viewport)
         SDL_GL_MakeCurrent(vd->Window, backup_context);
 
     viewport->PlatformHandle = (void*)vd->Window;
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(UWP)    // rbfx
     SDL_SysWMinfo info;
     SDL_VERSION(&info.version);
     if (SDL_GetWindowWMInfo(vd->Window, &info))
@@ -645,7 +645,7 @@ static void ImGui_ImplSDL2_DestroyWindow(ImGuiViewport* viewport)
 static void ImGui_ImplSDL2_ShowWindow(ImGuiViewport* viewport)
 {
     ImGui_ImplSDL2_ViewportData* vd = (ImGui_ImplSDL2_ViewportData*)viewport->PlatformUserData;
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(UWP)    // rbfx
     HWND hwnd = (HWND)viewport->PlatformHandleRaw;
 
     // SDL hack: Hide icon from task bar

@@ -1033,6 +1033,7 @@ static void ImGui_ImplWin32_ShutdownPlatformInterface()
 // [experimental]
 // Borrowed from GLFW's function updateFramebufferTransparency() in src/win32_window.c
 // (the Dwm* functions are Vista era functions but we are borrowing logic from GLFW)
+#ifndef __MINGW32__ // rbfx
 void ImGui_ImplWin32_EnableAlphaCompositing(void* hwnd)
 {
     if (!_IsWindowsVistaOrGreater())
@@ -1061,5 +1062,5 @@ void ImGui_ImplWin32_EnableAlphaCompositing(void* hwnd)
         ::DwmEnableBlurBehindWindow((HWND)hwnd, &bb);
     }
 }
-
+#endif
 //---------------------------------------------------------------------------------------------------------
