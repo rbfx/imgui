@@ -120,6 +120,12 @@
 static const Uint32 SDL_WINDOW_VULKAN = 0x10000000;
 #endif
 
+#if !defined(UWP) && defined(WINAPI_FAMILY_PARTITION)
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP) && !WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#define UWP
+#endif
+#endif
+
 // SDL Data
 struct ImGui_ImplSDL2_Data
 {
@@ -157,7 +163,7 @@ static ImGui_ImplSDL2_Data* ImGui_ImplSDL2_GetBackendData()
 }
 
 // Forward Declarations
-static void ImGui_ImplSDL2_UpdateMonitors();
+void ImGui_ImplSDL2_UpdateMonitors();
 static void ImGui_ImplSDL2_InitPlatformInterface(SDL_Window* window, void* sdl_gl_context);
 static void ImGui_ImplSDL2_ShutdownPlatformInterface();
 
@@ -822,7 +828,7 @@ static void ImGui_ImplSDL2_UpdateGamepads()
 }
 
 // FIXME: Note that doesn't update with DPI/Scaling change only as SDL2 doesn't have an event for it (SDL3 has).
-static void ImGui_ImplSDL2_UpdateMonitors()
+void ImGui_ImplSDL2_UpdateMonitors()
 {
     ImGui_ImplSDL2_Data* bd = ImGui_ImplSDL2_GetBackendData();
     ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
@@ -1021,7 +1027,7 @@ static void ImGui_ImplSDL2_DestroyWindow(ImGuiViewport* viewport)
 static void ImGui_ImplSDL2_ShowWindow(ImGuiViewport* viewport)
 {
     ImGui_ImplSDL2_ViewportData* vd = (ImGui_ImplSDL2_ViewportData*)viewport->PlatformUserData;
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(UWP)
     HWND hwnd = (HWND)viewport->PlatformHandleRaw;
 
     // SDL hack: Hide icon from task bar

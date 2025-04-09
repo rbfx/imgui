@@ -227,7 +227,6 @@ struct ImGui_ImplOpenGL3_Data
     bool            GlProfileIsES3;
     bool            GlProfileIsCompat;
     GLint           GlProfileMask;
-    GLuint          FontTexture;
     GLuint          FontTextures[32] = { };
     GLuint          ShaderHandle;
     GLint           AttribLocationTex;       // Uniforms location
@@ -253,6 +252,7 @@ static ImGui_ImplOpenGL3_Data* ImGui_ImplOpenGL3_GetBackendData()
 }
 
 // Forward Declarations
+bool ImGui_ImplOpenGL3_CreateFontsTexture(ImGui_ImplOpenGL3_Data* bd);
 static void ImGui_ImplOpenGL3_InitPlatformInterface();
 static void ImGui_ImplOpenGL3_ShutdownPlatformInterface();
 
@@ -416,8 +416,8 @@ void    ImGui_ImplOpenGL3_NewFrame()
 
     if (!bd->ShaderHandle)
         ImGui_ImplOpenGL3_CreateDeviceObjects();
-    if (!bd->FontTexture)
-        ImGui_ImplOpenGL3_CreateFontsTexture();
+    if (!bd->FontTextures[0])
+        ImGui_ImplOpenGL3_CreateFontsTexture(bd);
 }
 
 static void ImGui_ImplOpenGL3_SetupRenderState(ImDrawData* draw_data, int fb_width, int fb_height, GLuint vertex_array_object)
@@ -673,6 +673,12 @@ void    ImGui_ImplOpenGL3_RenderDrawData(ImDrawData* draw_data)
     glViewport(last_viewport[0], last_viewport[1], (GLsizei)last_viewport[2], (GLsizei)last_viewport[3]);
     glScissor(last_scissor_box[0], last_scissor_box[1], (GLsizei)last_scissor_box[2], (GLsizei)last_scissor_box[3]);
     (void)bd; // Not all compilation paths use this
+}
+
+bool ImGui_ImplOpenGL3_CreateFontsTexture()
+{
+    ImGui_ImplOpenGL3_Data* bd = ImGui_ImplOpenGL3_GetBackendData();
+    return ImGui_ImplOpenGL3_CreateFontsTexture(bd);
 }
 
 ImTextureID ImGui_ImplOpenGL3_CreateFontsTexture(ImFontAtlas* fonts)
