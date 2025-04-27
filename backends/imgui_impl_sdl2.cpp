@@ -163,7 +163,8 @@ static ImGui_ImplSDL2_Data* ImGui_ImplSDL2_GetBackendData()
 }
 
 // Forward Declarations
-void ImGui_ImplSDL2_UpdateMonitors();
+IMGUI_API void ImGui_ImplSDL2_UpdateMonitors();
+IMGUI_API ImGuiKey ImGui_ImplSDL2_KeyEventToImGuiKey(SDL_Keycode keycode, SDL_Scancode scancode);
 static void ImGui_ImplSDL2_InitPlatformInterface(SDL_Window* window, void* sdl_gl_context);
 static void ImGui_ImplSDL2_ShutdownPlatformInterface();
 
@@ -854,7 +855,13 @@ void ImGui_ImplSDL2_UpdateMonitors()
         //  DpiScale to cocoa_window.backingScaleFactor here.
         float dpi = 0.0f;
         if (!SDL_GetDisplayDPI(n, &dpi, nullptr, nullptr))
-            monitor.DpiScale = ImMax(dpi / 96.0f, 1.0f);
+		{
+            monitor.DpiScale = dpi / 96.0f;
+			if (monitor.DpiScale < 1.0f)
+			{
+				monitor.DpiScale = 1.0f;
+			}
+		}
 #endif
         monitor.PlatformHandle = (void*)(intptr_t)n;
         platform_io.Monitors.push_back(monitor);
