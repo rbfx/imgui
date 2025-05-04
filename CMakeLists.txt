@@ -17,6 +17,7 @@ add_library(imgui ${LIB_TYPE}
     misc/cpp/imgui_stdlib.cpp
     misc/freetype/imgui_freetype.cpp
     backends/imgui_impl_sdl2.cpp
+    backends/imgui_impl_opengl3.cpp
 )
 
 target_include_directories(imgui PUBLIC
